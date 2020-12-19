@@ -1,20 +1,18 @@
-
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple
 import numpy as np
-from torch import nn
-from random import randrange
 
-from utils.pytorch_models import ResnetModel
-from environments.environment_abstract import Environment, State
 from environments.cube3 import Cube3State, Cube3 as Cube3Environment
 from xcs229ii_cube.cube2.cube import Cube2
 from xcs229ii_cube.cube2.solver import load_lookup_table, find_solution
 from xcs229ii_cube.cube3.generated_lists import apply_move_np, MOVES_DEFINITIONS, MOVES_NAMES, MOVES_NAMES_TO_INDICES, REVERSE_MOVES_NAMES, FIXED_CUBIE_MOVES_NAMES_TO_INDICES
-from xcs229ii_cube.glue2_to_3 import Glue2To3Cube
+from xcs229ii_cube.glue2_to_3 import convert_3_cubes_to_2_cubes
 from xcs229ii_cube.utils import StickerVectorSerializer
+from xcs229ii_cube.loggers import getLogger
 
-glue = Glue2To3Cube(None)
+logger = getLogger(__name__)
+logger.info("Loading cube2 lookup table...")
 load_lookup_table()
+logger.info("Loaded!")
 
 class Cube3SolvedCorners(Cube3Environment):
 
@@ -35,47 +33,22 @@ class Cube3SolvedCorners(Cube3Environment):
                                                  6, 6, 6, 6, 6, 6, 6, 6, 6], dtype=self.dtype)
 
     def generate_states(self, num_states: int, backwards_range: Tuple[int, int]) -> Tuple[List[Cube3State], List[int]]:
-        states_np, scramble_nums = self.generate_3_cube_states_np(num_states, backwards_range)
-        oriented_3_cubes = []
-        cubes_2_states = glue.convert_3_cubes_to_2_cubes(states_np)
+        cube3_states, scramble_nums = super(Cube3SolvedCorners, self).generate_states(num_states, backwards_range)
+        return self.solve_corners(cube3_states), scramble_nums
+
+    def solve_corners(self, cube3_states):
+        states_np = np.array([state.colors for state in cube3_states], dtype=self.dtype)
+        cubes3_with_solved_corners = []
+        cubes_2_states = convert_3_cubes_to_2_cubes(states_np)
         for i, cube2_state in enumerate(cubes_2_states):
-            cube_2_as_int = StickerVectorSerializer(Cube2).unserialize(cube2_state).as_stickers_int
-            cube2_solution = find_solution(cube_2_as_int)
-            cube3_with_cube2_solution_applied = self.apply_cube2_solution_to_cube3(cube2_solution, states_np[i])
-            oriented_3_cubes.append(Cube3State(cube3_with_cube2_solution_applied))
+            cube2_solution = self.solve_cube_2(cube2_state)
+            cube3_with_solved_corners = self.apply_cube2_solution_to_cube3(cube2_solution, states_np[i])
+            cubes3_with_solved_corners.append(Cube3State(cube3_with_solved_corners))
+        return cubes3_with_solved_corners
 
-        return oriented_3_cubes, scramble_nums
-
-    def generate_3_cube_states_np(self, num_states: int, backwards_range: Tuple[int, int]) -> Tuple[np.array, List[int]]:
-        assert (num_states > 0)
-        assert (backwards_range[0] >= 0)
-        assert self.fixed_actions, "Environments without fixed actions must implement their own method"
-
-        # Initialize
-        scrambs: List[int] = list(range(backwards_range[0], backwards_range[1] + 1))
-        num_env_moves: int = self.get_num_moves()
-
-        # Get goal states
-        states_np: np.ndarray = self.generate_goal_states(num_states, np_format=True)
-
-        # Scrambles
-        scramble_nums: np.array = np.random.choice(scrambs, num_states)
-        num_back_moves: np.array = np.zeros(num_states)
-
-        # Go backward from goal state
-        moves_lt = num_back_moves < scramble_nums
-        while np.any(moves_lt):
-            idxs: np.ndarray = np.where(moves_lt)[0]
-            subset_size: int = int(max(len(idxs) / num_env_moves, 1))
-            idxs: np.ndarray = np.random.choice(idxs, subset_size)
-
-            move: int = randrange(num_env_moves)
-            states_np[idxs], _ = self._move_np(states_np[idxs], move)
-
-            num_back_moves[idxs] = num_back_moves[idxs] + 1
-            moves_lt[idxs] = num_back_moves[idxs] < scramble_nums[idxs]
-
-        return states_np, scramble_nums.tolist()
+    def solve_cube_2(self, cube2_state):
+        cube_2_as_int = StickerVectorSerializer(Cube2).unserialize(cube2_state).as_stickers_int
+        return find_solution(cube_2_as_int)
 
     def apply_cube2_solution_to_cube3(self, cube2_solution, cube3_state):
         new_cube3_state = np.array([cube3_state])
@@ -97,10 +70,8 @@ class Cube3SolvedCorners(Cube3Environment):
         """
         return {}, {}
 
-#c = Cube3SolvedCorners()
-#print(c.generate_states(20, (2, 2)))
-# states = np.stack([state.colors for state in c.generate_goal_states(1)])
-# print(c._move_np(states, 1))
 
-
-
+if __name__ == "__main__":
+    c = Cube3SolvedCorners()
+    print([x.colors for x in c.generate_states(20, (2, 2))[0]])
+    # print(c._move_np(states, 1))
