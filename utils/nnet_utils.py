@@ -296,7 +296,7 @@ def start_heur_fn_runners(num_procs: int, nnet_dir: str, device, on_gpu: bool, e
     if ('CUDA_VISIBLE_DEVICES' in os.environ) and (len(os.environ['CUDA_VISIBLE_DEVICES']) > 0):
         gpu_nums = [int(x) for x in os.environ['CUDA_VISIBLE_DEVICES'].split(",")]
     else:
-        gpu_nums = [None]
+        gpu_nums = [0]
 
     heur_procs: List[ctx.Process] = []
     for gpu_num in gpu_nums:
