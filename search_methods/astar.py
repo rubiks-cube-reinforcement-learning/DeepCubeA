@@ -455,7 +455,7 @@ def bwas_python(args, env: Environment, states: List[State]):
 
 
 def bwas_cpp(args, env: Environment, states: List[State], results_file: str):
-    assert (args.env.upper() in ['CUBE3', 'CUBE4', 'PUZZLE15', 'PUZZLE24', 'PUZZLE35', 'PUZZLE48', 'LIGHTSOUT7'])
+    assert (args.env.upper() in ['CUBE3', 'CUBE2', 'CUBE3_SOLVED_CORNERS', 'CUBE4', 'PUZZLE15', 'PUZZLE24', 'PUZZLE35', 'PUZZLE48', 'LIGHTSOUT7'])
 
     # Make c++ socket
     socket_name: str = "%s_cpp_socket" % results_file.split(".")[0]
@@ -470,7 +470,7 @@ def bwas_cpp(args, env: Environment, states: List[State], results_file: str):
     sock.bind(socket_name)
 
     # Get state dimension
-    if args.env.upper() == 'CUBE3':
+    if args.env.upper() in ['CUBE2', 'CUBE3_SOLVED_CORNERS', 'CUBE3']:
         state_dim: int = 54
     elif args.env.upper() == 'PUZZLE15':
         state_dim: int = 16
@@ -507,7 +507,7 @@ def bwas_cpp(args, env: Environment, states: List[State], results_file: str):
 
     for state_idx, state in enumerate(states):
         # Get string rep of state
-        if args.env.upper() == "CUBE3":
+        if args.env.upper() in ['CUBE2', 'CUBE3_SOLVED_CORNERS', 'CUBE3']:
             state_str: str = " ".join([str(x) for x in state.colors])
         elif args.env.upper() in ["PUZZLE15", "PUZZLE24", "PUZZLE35", "PUZZLE48"]:
             state_str: str = " ".join([str(x) for x in state.tiles])
@@ -596,7 +596,7 @@ def cpp_listener(sock, args, env: Environment, state_dim: int, heur_fn_i_q, heur
         states_np = states_np.reshape(int(len(states_np)/state_dim), state_dim)
 
         # Get nnet representation of state
-        if args.env.upper() == "CUBE3":
+        if args.env.upper() in ['CUBE2', 'CUBE3_SOLVED_CORNERS', 'CUBE3']:
             states_np = states_np/9
             states_np = states_np.astype(env.dtype)
             states_nnet: List[np.ndarray] = [states_np]

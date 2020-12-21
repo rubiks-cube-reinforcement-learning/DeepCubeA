@@ -8,7 +8,13 @@ def get_environment(env_name: str) -> Environment:
     puzzle_n_regex = re.search("puzzle(\d+)", env_name)
     env: Environment
 
-    if env_name == 'cube3':
+    if env_name == 'cube3_solved_corners':
+        from environments.cube3_solved_corners import Cube3SolvedCorners
+        env = Cube3SolvedCorners()
+    elif env_name == 'cube2':
+        from environments.cube2 import Cube2
+        env = Cube2()
+    elif env_name == 'cube3':
         from environments.cube3 import Cube3
         env = Cube3()
     elif puzzle_n_regex is not None:
