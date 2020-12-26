@@ -37,12 +37,7 @@ class Cube2(Cube3Environment):
         self.cube_len = 2
 
         # solved state
-        self.goal_colors: np.ndarray = np.array([1, 1, 1, 1,
-                                                 2, 2, 2, 2,
-                                                 3, 3, 3, 3,
-                                                 4, 4, 4, 4,
-                                                 5, 5, 5, 5,
-                                                 6, 6, 6, 6], dtype=self.dtype)
+        self.goal_colors: np.ndarray = np.array(list(range(24)), dtype=self.dtype)
 
     def _move_np(self, states_np: np.ndarray, action_index: int):
         """
