@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 from environments.loggers import getLogger
 from environments.cube3 import Cube3State, Cube3 as Cube3Environment
 
@@ -48,35 +48,35 @@ class Cube3SolvedCorners(Cube3Environment):
         self.cube_len = 3
 
         # solved state
-        self.goal_colors: np.ndarray = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                                 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                                                 3, 3, 3, 3, 3, 3, 3, 3, 3,
-                                                 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                                                 5, 5, 5, 5, 5, 5, 5, 5, 5,
-                                                 6, 6, 6, 6, 6, 6, 6, 6, 6], dtype=self.dtype)
+        self.goal_colors: np.ndarray = np.array(list(range(54)), dtype=self.dtype)
 
     def generate_states(self, num_states: int, backwards_range: Tuple[int, int]) -> Tuple[List[Cube3State], List[int]]:
         """
         Generates 3-cube states with corner cubies placed correctly.
         """
         cube3_states, scramble_nums = super(Cube3SolvedCorners, self).generate_states(num_states, backwards_range)
-        return self.solve_corners(cube3_states), scramble_nums
+        cube3_with_corners, corners_moves_num = self.solve_corners(cube3_states)
+        return cube3_with_corners, scramble_nums + corners_moves_num
 
-    def solve_corners(self, cube3_states: List[Cube3State]) -> List[Cube3State]:
+    def solve_corners(self, cube3_states: List[Cube3State]) -> Tuple[List[Cube3State], Any]:
         """
         Solves corner pieces of 3-cubes by reducing them to 2-cubes, solving the smaller cubes,
         and applying the same solution to the larger cube.
         """
         states_np = np.array([state.colors for state in cube3_states], dtype=self.dtype)
+
         cubes3_with_solved_corners = []
         cubes2_as_ints = self.convert_3_cubes_to_2_cubes(states_np)
+        solutions_len = []
         for i, cube2_state_int in enumerate(cubes2_as_ints):
             cube2_solution = find_solution(cube2_state_int)
+            solutions_len.append(len(cube2_solution))
             cube3_with_solved_corners = self.apply_cube2_solution_to_cube3(cube2_solution, states_np[i])
             cubes3_with_solved_corners.append(Cube3State(cube3_with_solved_corners))
-        return cubes3_with_solved_corners
+        return cubes3_with_solved_corners, np.array(solutions_len)
 
     def convert_3_cubes_to_2_cubes(self, cubes : np.ndarray) -> List[int]:
+        cubes = (np.floor(cubes / 9) + 1).astype(np.int16)
         cube2_vectors = cubes[:, CUBE2_INDICES_IN_CUBE3_VECTOR]
         ints = []
         for cube2_vector in cube2_vectors:
@@ -166,5 +166,5 @@ load_lookup_table()
 
 if __name__ == "__main__":
     c = Cube3SolvedCorners()
-    print([x.colors for x in c.generate_states(1, (0, 5))[0]])
+    print([x.colors for x in c.generate_states(1, (0, 1))[0]])
 
