@@ -383,6 +383,8 @@ int main(int argc, const char *argv[]) {
 		env = new PuzzleN(init,7);
 	} else if (envName == "cube3") {
 		env = new Cube3(init);
+	} else if (envName == "cube3_solved_corners") {
+		env = new Cube3SolvedCorners(init);
 	} else if (envName == "cube4") {
 		env = new Cube4(init);
 	} else if (envName == "lightsout7") {
